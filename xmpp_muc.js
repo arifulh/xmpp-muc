@@ -1,6 +1,10 @@
 $(function () {
-	var Connection = {
 
+	// Connection object, outside of the Backbone structure.
+	// Sends and recieves stanzas, and passes them to the app.
+	var Connection = {
+		
+		// When someone clicks 'join', the main app will pass server info
 		initialize : function (options) {
 			_.bindAll(this, 'onPresence', 'onMessage');
 			this.host = options.host;
@@ -11,9 +15,9 @@ $(function () {
 			this.conn = new Strophe.Connection(this.bosh);
 			this.connect();
 		},
-
+	
+		// Anonymous login
 		connect : function () {
-			// Anonymous login
 			this.conn.connect(this.host, "", function (status) {
 				if (status === Strophe.Status.CONNECTED) {
 					Connection.connected();
@@ -53,16 +57,18 @@ $(function () {
 		onPresence : function (presence) {
 			var from = $(presence).attr('from');
 			var room = Strophe.getBareJidFromJid(from);
-			// make sure message is from room
+			// Make sure message is from room
 			if (room === (this.room)) {
 				var nick = Strophe.getResourceFromJid(from);
 				var type = $(presence).attr('type');
+				// Passes nickname of the presence sender to the
+				// main app to be either removed or added to the
+				// Roster Collection.
 				switch (type) {
 					case 'unavailable':
 						this.app.removeMember(nick);
 						break;
 					case 'error':
-						// this.app.showError();
 						this.disconnect();
 						break;
 					default:
@@ -76,7 +82,8 @@ $(function () {
 		onMessage : function (message) {
 			var from = $(message).attr('from');
 			var room = Strophe.getBareJidFromJid(from);
-			// make sure message is from room
+			// Make sure message is from room, then pass
+			// message to the main app to be rendered.
 			if (room === (this.room)) {
 				var nick = Strophe.getResourceFromJid(from);
 				if (nick === this.nick) return true;
@@ -98,6 +105,9 @@ $(function () {
 	// Models
 	
 	var Member = Backbone.Model.extend({
+		// "Status" is not really used for anything 
+		// right now since the RosterView updates based on whether
+		// the model is still in the collection or not
 		initialize : function () {
 			this.set({ "status": "available" });
 		}
@@ -107,7 +117,8 @@ $(function () {
 	
 	Roster = Backbone.Collection.extend({
 		model : Member,
-
+	
+		// Link this Collection to RosterView
 		initialize : function () {
 			this.view = new RosterView({ "roster": this });
 		}
@@ -115,13 +126,13 @@ $(function () {
 
 	// Views
 
-	// RosterView listens for changes in the Roster Collection,
-	// whenever members are added or removed	
 	RosterView = Backbone.View.extend({
 		el : $("#members"),
 
 		template : _.template($("#memberul-template").html()),
 
+		// RosterView listens for changes in the Roster Collection,
+		// whenever members are added or removed	
 		initialize : function (options) {
 			_.bindAll(this, 'render');
 			this.roster = options.roster;
@@ -137,6 +148,7 @@ $(function () {
 
 	});
 
+	// This is the main App View
 	var AppView = Backbone.View.extend({
 		el : $("#chat"),
 
@@ -156,16 +168,17 @@ $(function () {
 			this.input = $("#messageInput");
 			this.messageTemplate = _.template($("#message-template").html());
 		},
-
+		
 		addMember : function (nick) {
 			this.roster.add({ "nick": nick });
 		},
-
+		
 		removeMember : function (nick) {
 			var member = this.roster.find(function (m) { return m.get("nick") === nick });
 			this.roster.remove(member);
 		},
-
+		
+		// Pass connection object server information
 		join: function () {
 			var nickname = $("#nick").val();
 			var chatroom = $("#room").val();
@@ -184,6 +197,7 @@ $(function () {
 			Connection.disconnect();
 		},
 
+		// Pass message text to Connection object to send it to the server
 		createMessage : function (e) {
 			if (e.which !== 13) return;
 			var message = this.input.val();
@@ -191,7 +205,7 @@ $(function () {
 			this.renderMessage(this.nick, message);
 			this.input.val('');
 		},
-
+	
 		renderMessage : function (nick, message) {
 			this.display.append(this.messageTemplate({
 				"nick": nick,
@@ -204,5 +218,6 @@ $(function () {
 
 	});
 
+	// Create app
 	window.App = new AppView;
 });
