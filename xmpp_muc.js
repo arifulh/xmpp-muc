@@ -1,8 +1,8 @@
 $(function () {
+
     // Connection object, outside of the Backbone structure.
     // Sends and recieves stanzas, and passes them to the app.
     var Connection = {
-
         // When someone clicks 'join', the main app will pass server info
         initialize: function (options) {
             _.bindAll(this, 'onPresence', 'onMessage');
